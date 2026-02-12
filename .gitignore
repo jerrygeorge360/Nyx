@@ -1,0 +1,50 @@
+### Backend (Node/TypeScript)
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/.cache/
+backend/.turbo/
+backend/.swc/
+backend/.tsbuildinfo
+backend/coverage/
+backend/.nyc_output/
+backend/logs/
+backend/*.log
+backend/**/*.log
+
+### Environment files
+backend/.env
+backend/.env.*
+backend/.env.local
+backend/.env.*.local
+
+### Prisma
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+### Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+frontend/.turbo/
+frontend/.swc/
+frontend/.cache/
+frontend/coverage/
+frontend/.nyc_output/
+frontend/*.log
+frontend/**/*.log
+frontend/.env
+frontend/.env.*
+frontend/.env.local
+frontend/.env.*.local
+
+### OS/Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

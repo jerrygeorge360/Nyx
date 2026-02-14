@@ -27,6 +27,7 @@ model Repository {
   id        String   @id @default(uuid()) @db.Uuid
   githubId  Int      @unique
   name      String
+  fullName  String?  @unique
   url       String
   createdAt DateTime @default(now())
 
@@ -43,10 +44,13 @@ model Repository {
 model Review {
   id        String   @id @default(uuid()) @db.Uuid
   repoId    String   @db.Uuid
-  commitSha String
+  commitSha String?
   prNumber  Int?
   summary   String
+  approved  Boolean?
+  score     Int?
   issues    Json
+  suggestions Json?
   source    String?
   agent     String?
   createdAt DateTime @default(now())
@@ -62,7 +66,7 @@ model Issue {
   id        String   @id @default(uuid()) @db.Uuid
   reviewId  String   @db.Uuid
   repoId    String   @db.Uuid
-  commitSha String
+  commitSha String?
   title     String
   details   String?
   severity  String?

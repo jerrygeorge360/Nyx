@@ -73,12 +73,14 @@ export const fetchAndStoreUserRepos = async (
 				where: { githubId: repo.id },
 				update: {
 					name: repo.name,
+					fullName: repo.full_name,
 					url: repo.html_url,
 					ownerId: owner.id,
 				},
 				create: {
 					githubId: repo.id,
 					name: repo.name,
+					fullName: repo.full_name,
 					url: repo.html_url,
 					ownerId: owner.id,
 				},

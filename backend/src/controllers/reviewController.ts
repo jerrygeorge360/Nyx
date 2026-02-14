@@ -5,11 +5,15 @@ import type { IssueInput, ReviewInput } from "../services/reviewService.js";
 import { HttpError } from "../utils/httpError.js";
 
 interface CreateReviewBody {
-  repoId: string;
-  commitSha: string;
+  repoId?: string;
+  repoFullName?: string;
+  commitSha?: string;
   prNumber?: number;
   summary: string;
+  approved?: boolean;
+  score?: number;
   issues: unknown[];
+  suggestions?: unknown[];
   source?: string;
   agent?: string;
 }
@@ -31,14 +35,30 @@ export const createReview = async (
   req: Request<Record<string, never>, CreateReviewResponse, CreateReviewBody>,
   res: Response<CreateReviewResponse>
 ) => {
-  const { repoId, commitSha, prNumber, summary, issues, source, agent } = req.body;
+  const {
+    repoId,
+    repoFullName,
+    commitSha,
+    prNumber,
+    summary,
+    approved,
+    score,
+    issues,
+    suggestions,
+    source,
+    agent,
+  } = req.body;
 
-  if (!repoId || !commitSha || !summary) {
-    throw new HttpError(400, "repoId, commitSha, and summary are required");
+  if ((!repoId && !repoFullName) || !summary) {
+    throw new HttpError(400, "repoId or repoFullName and summary are required");
   }
 
   if (!Array.isArray(issues)) {
     throw new HttpError(400, "issues must be an array");
+  }
+
+  if (suggestions !== undefined && !Array.isArray(suggestions)) {
+    throw new HttpError(400, "suggestions must be an array");
   }
 
   const normalizedIssues: IssueInput[] = issues.map((issue) => {
@@ -62,10 +82,14 @@ export const createReview = async (
   });
 
   const reviewInput: ReviewInput = {
-  repoId,
-    commitSha,
-  summary,
+    ...(repoId ? { repoId } : {}),
+    ...(repoFullName ? { repoFullName } : {}),
+    ...(commitSha !== undefined ? { commitSha } : {}),
+    summary,
+    ...(approved !== undefined ? { approved } : {}),
+    ...(score !== undefined ? { score } : {}),
     issues: issues as Prisma.JsonArray,
+    ...(suggestions !== undefined ? { suggestions: suggestions as Prisma.JsonArray } : {}),
     issuesList: normalizedIssues,
     ...(prNumber !== undefined ? { prNumber } : {}),
     ...(source !== undefined ? { source } : {}),

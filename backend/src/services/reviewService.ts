@@ -10,11 +10,15 @@ export interface IssueInput {
 }
 
 export interface ReviewInput {
-  repoId: string;
-  commitSha: string;
+  repoId?: string;
+  repoFullName?: string;
+  commitSha?: string | null;
   prNumber?: number;
   summary: string;
+  approved?: boolean;
+  score?: number;
   issues: Prisma.JsonValue;
+  suggestions?: Prisma.JsonValue;
   source?: string;
   agent?: string;
   issuesList: IssueInput[];
@@ -24,11 +28,20 @@ export type ReviewWithIssues = Prisma.ReviewGetPayload<{
   include: { issuesList: true; repository: true };
 }>;
 
-const ensureRepoExists = async (repoId: string) => {
-  const repo = await prisma.repository.findUnique({
-    where: { id: repoId },
-    include: { owner: true },
-  });
+const ensureRepoExists = async (repoId?: string, repoFullName?: string) => {
+  if (!repoId && !repoFullName) {
+    throw new HttpError(400, "repoId or repoFullName is required");
+  }
+
+  const repo = repoId
+    ? await prisma.repository.findUnique({
+        where: { id: repoId },
+        include: { owner: true },
+      })
+    : await prisma.repository.findUnique({
+        where: { fullName: repoFullName ?? undefined },
+        include: { owner: true },
+      });
   if (!repo) {
     throw new HttpError(404, "Repository not found");
   }
@@ -39,16 +52,19 @@ const ensureRepoExists = async (repoId: string) => {
 };
 
 export const addReview = async (input: ReviewInput): Promise<ReviewWithIssues> => {
-  await ensureRepoExists(input.repoId);
+  const repo = await ensureRepoExists(input.repoId, input.repoFullName);
 
   const [review] = await prisma.$transaction([
     prisma.review.create({
       data: {
-        repoId: input.repoId,
-        commitSha: input.commitSha,
+        repoId: repo.id,
+        commitSha: input.commitSha ?? null,
         prNumber: input.prNumber ?? null,
         summary: input.summary,
+        approved: input.approved ?? null,
+        score: input.score ?? null,
         issues: (input.issues ?? []) as Prisma.InputJsonValue,
+        suggestions: (input.suggestions ?? []) as Prisma.InputJsonValue,
         source: input.source ?? null,
         agent: input.agent ?? null,
       },
@@ -58,9 +74,9 @@ export const addReview = async (input: ReviewInput): Promise<ReviewWithIssues> =
   if (input.issuesList.length > 0) {
     await prisma.issue.createMany({
       data: input.issuesList.map((issue) => ({
-        repoId: input.repoId,
+        repoId: repo.id,
         reviewId: review.id,
-        commitSha: input.commitSha,
+        commitSha: input.commitSha ?? null,
         title: issue.title,
         details: issue.details ?? null,
         severity: issue.severity ?? null,

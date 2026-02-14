@@ -1,6 +1,6 @@
-# Nyx
+# Holy
 
-Nyx is a backend for GitHub‑connected AI code reviews. It pulls repo metadata, stores review output with clear provenance (commit SHA, timestamps, source/agent), and gives users control over their stored memory—inspect, export, delete, or revoke at any time. Future plan: connect to the NEAR Shade Agent, which will act as the AI reviewer.
+Holy is a backend for GitHub‑connected AI code reviews. It pulls repo metadata, stores review output with clear provenance (commit SHA, timestamps, source/agent), and gives users control over their stored memory—inspect, export, delete, or revoke at any time. Future plan: connect to the NEAR Shade Agent, which will act as the AI reviewer.
 
 ## Highlights
 
@@ -95,7 +95,7 @@ POST /reviews
 		{ "title": "Null check missing", "details": "user is undefined", "severity": "high" }
 	],
 	"source": "ci-bot",
-	"agent": "nyx-ai"
+    "agent": "holy-ai"
 }
 ```
 
@@ -109,7 +109,7 @@ POST /reviews
 Create a .env file:
 
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/nyx
+DATABASE_URL=postgresql://user:password@localhost:5432/holy
 GITHUB_TOKEN=your_github_token
 PORT=3000
 ```

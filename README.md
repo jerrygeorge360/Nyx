@@ -1,4 +1,4 @@
-# Nyx
+# Holy
 
 Autonomous code review bounty platform with:
 - **Backend API** (Node.js/TypeScript, Prisma)

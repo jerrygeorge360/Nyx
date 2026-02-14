@@ -5,7 +5,7 @@ import { HttpError } from "../utils/httpError.js";
 
 const octokit = new Octokit({
 	auth: process.env.GITHUB_TOKEN || undefined,
-	userAgent: "nyx-backend",
+	userAgent: "holy-backend",
 });
 
 export interface GitHubRepo {

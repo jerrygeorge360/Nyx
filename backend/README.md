@@ -1,13 +1,30 @@
-# Holy
+# Holy Backend
 
-Holy is a backend for GitHub‑connected AI code reviews. It pulls repo metadata, stores review output with clear provenance (commit SHA, timestamps, source/agent), and gives users control over their stored memory—inspect, export, delete, or revoke at any time. Future plan: connect to the NEAR Shade Agent, which will act as the AI reviewer.
+The Holy backend is a REST API that stores and manages code review data, repositories, user preferences, and notifications. It provides complete control over stored data—inspect, export, delete, or revoke at any time.
 
-## Highlights
+**What the backend does:**
+- Stores users, repositories, reviews, issues, and preferences in PostgreSQL
+- Provides REST endpoints for data access and management
+- Handles data export in CSV/JSON formats
+- Manages user privacy controls (delete/revoke)
+- Fetches GitHub repository metadata via Octokit
 
-- GitHub repo ingestion and storage
-- AI review storage with issues and provenance
+**What the Shade Agent does (separate service):**
+- Listens for GitHub webhook events (PRs, commits)
+- Performs AI code reviews using Groq LLM
+- Posts review comments directly on GitHub PRs
+- Sends review data to this backend via POST /reviews
+- Triggers NEAR bounty releases through the agent contract
+
+## Backend Features
+
+- REST API for review data management
+- GitHub repository metadata ingestion
+- Review storage with scoring, approval status, and suggestions
+- Repository lookup by full name (owner/repo) or UUID
 - User-owned memory: inspect/export/delete/revoke
-- Notifications pipeline (Slack, email, GitHub comments)
+- Data export pipeline (CSV, JSON)
+- Notification storage and management
 
 ## Stack
 
@@ -21,83 +38,113 @@ Holy is a backend for GitHub‑connected AI code reviews. It pulls repo metadata
 - User → Repositories → Reviews → Issues
 - User → Preferences
 - Review → Notifications
+- Repository: stores GitHub repo metadata with `fullName` (unique) for easy lookup
+- Review: includes `approved` (boolean), `score` (0-100), `suggestions` (JSON array), and optional `commitSha`
 
 ## Architecture
 
 ```mermaid
 flowchart TD
+    subgraph ShadeAgent[Shade Agent - separate service]
+        A[GitHub Webhook Listener]
+        B[Groq LLM Reviewer]
+        C[Post Comments to GitHub]
+        D[Trigger NEAR Bounty Release]
+    end
+
+    subgraph Backend[Backend API]
+        E[REST Endpoints]
+        F[Prisma ORM]
+        G[(PostgreSQL)]
+    end
+
     subgraph GitHub
-        A[GitHub Repo/PR]
+        H[Pull Requests]
     end
 
-    subgraph ShadeAgent
-        B[Monitor PRs & Commits]
-        C[Run AI Code Review]
-        D[Post Comments on PR]
-        E[Send Review Results to Backend]
+    subgraph Users
+        I[Inspect/Export/Delete Data]
     end
 
-    subgraph Backend
-        F[API Endpoints]
-        G[Prisma DB: Reviews, Repos, Notifications]
-    end
-
-    subgraph User
-        H[Inspect/Export/Delete Memory]
-    end
-
-    A -->|Events / Commits| B
+    H -->|Webhook Events| A
+    A --> B
     B --> C
-    C --> D
-    C --> E
+    B -->|POST /reviews| E
+    B --> D
     E --> F
     F --> G
-    H --> F
+    I -->|API Calls| E
+    E -->|GET /repos/:user| H
 ```
+
+The backend is a stateless API layer. The Shade Agent is a separate service that sends review data to the backend after performing analysis.
 
 ## Endpoints
 
-### GitHub
-- GET /repos/:user
+### Users
+- POST /users — Create user
+- GET /users/:id — Get user by ID
+- PUT /users/:id — Update user
+- DELETE /users/:id — Delete user and all data
+
+### Repositories
+- GET /repos/:user — Get user's GitHub repos
+- POST /repos — Register repository
+- GET /repos — List repositories
 
 ### Reviews
-- POST /reviews
-- GET /reviews/:repoId
+- POST /reviews — Submit review (accepts `repoFullName` or `repoId`)
+- GET /reviews/:repoId — Get reviews for repository
+- GET /reviews — Query reviews by userId
+- DELETE /reviews/:id — Delete review
 
-### Memory (inspect)
-- GET /reviews?userId=
-- GET /issues?userId=
-- GET /preferences?userId=
-- GET /notifications?userId=
+### Issues
+- POST /issues — Create issue
+- GET /issues — Query issues by userId or reviewId
+- DELETE /issues/:id — Delete issue
+
+### Preferences
+- POST /preferences — Set repository preferences
+- GET /preferences — Get preferences by userId or repoId
+- DELETE /preferences/:id — Delete preferences
+
+### Notifications
+- POST /notifications — Create notification
+- GET /notifications — Query notifications by userId
+- PUT /notifications/:id — Update notification status
 
 ### Memory (export)
 - GET /export/reviews?userId=&format=csv|json
 - GET /export/issues?userId=&format=csv|json
 - GET /export/preferences?userId=&format=csv|json
 
-### Memory (delete/revoke)
-- DELETE /reviews/:reviewId
-- DELETE /issues/:issueId
-- DELETE /preferences/:repoId
-- DELETE /user/:userId
-
 ## Example
 
 POST /reviews
 
-```
+The backend accepts reviews from the Shade Agent with repository lookup by full name:
+
+```json
 {
-	"repoId": "<repo-uuid>",
+	"repoFullName": "owner/repo",
 	"commitSha": "abc123",
 	"prNumber": 42,
-	"summary": "Found missing null checks.",
-	"issues": [
-		{ "title": "Null check missing", "details": "user is undefined", "severity": "high" }
+	"summary": "Code looks good with minor suggestions.",
+	"approved": true,
+	"score": 85,
+	"suggestions": [
+		"Consider adding error handling in line 42",
+		"Add unit tests for the new function"
 	],
-	"source": "ci-bot",
-    "agent": "holy-ai"
+	"issues": [
+		{ "title": "Missing error handling", "details": "Function may throw unhandled exception", "severity": "medium" }
+	],
+	"source": "shade-agent",
+	"agent": "holy-groq-reviewer"
 }
 ```
+
+Alternatively, use `repoId` instead of `repoFullName` if you have the UUID.
 
 ## Setup
 

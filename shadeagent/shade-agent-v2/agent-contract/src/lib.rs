@@ -3,11 +3,11 @@ use near_sdk::{
     AccountId, BorshStorageKey, Gas, NearToken, PanicOnDefault, Promise,
     env::{self, block_timestamp_ms},
     ext_contract,
-    json_types::U64,
+    json_types::{U64, U128},
     log, near, require,
     serde::Serialize,
     serde_json,
-    store::{IterableMap, IterableSet},
+    store::{IterableMap, IterableSet, LookupMap},
 };
 use shade_attestation::{
     attestation::DstackAttestation,
@@ -38,6 +38,8 @@ pub struct Contract {
     pub approved_ppids: IterableSet<Ppid>,
     pub agents: IterableMap<AccountId, Agent>,
     pub whitelisted_agents_for_local: IterableSet<AccountId>,
+    pub bounties: LookupMap<String, u128>,
+    pub repo_maintainers: LookupMap<String, AccountId>,
 }
 
 #[near(serializers = [borsh])]
@@ -54,6 +56,8 @@ pub enum StorageKey {
     ApprovedPpids,
     Agents,
     WhitelistedAgentsForLocal,
+    Bounties,
+    RepoMaintainers,
 }
 
 const STORAGE_BYTES_TO_REGISTER: u128 = 486;
@@ -77,6 +81,8 @@ impl Contract {
             approved_ppids: IterableSet::new(StorageKey::ApprovedPpids),
             agents: IterableMap::new(StorageKey::Agents),
             whitelisted_agents_for_local: IterableSet::new(StorageKey::WhitelistedAgentsForLocal),
+            bounties: LookupMap::new(StorageKey::Bounties),
+            repo_maintainers: LookupMap::new(StorageKey::RepoMaintainers),
         }
     }
 

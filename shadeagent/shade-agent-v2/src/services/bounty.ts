@@ -1,27 +1,32 @@
-import crypto from "crypto";
-import { JsonRpcProvider } from "@near-js/providers";
-import {
-  actionCreators,
-  createTransaction,
-  Signature,
-  SignedTransaction,
-} from "@near-js/transactions";
-import { KeyPair, KeyType } from "@near-js/crypto";
-import { baseDecode, parseNearAmount } from "@near-js/utils";
-import { requestSignature } from "@neardefi/shade-agent-js";
 import { getAgent } from "../index";
 import { logPayout } from "../store/payoutLog";
+
+const NEAR_TO_YOCTO = BigInt("1000000000000000000000000");
+
+function toYocto(near: string): string {
+  const nearNum = parseFloat(near);
+  if (isNaN(nearNum)) return "0";
+  return (BigInt(Math.floor(nearNum * 1e24))).toString();
+}
+
+function fromYocto(yocto: string): string {
+  try {
+    const yoctoNum = BigInt(yocto);
+    return (Number(yoctoNum) / 1e24).toFixed(4);
+  } catch {
+    return "0";
+  }
+}
 
 export async function getBounty(repoFullName: string): Promise<string> {
   try {
     const agent = getAgent();
-    const result = await agent.view<{ amount?: string }>(
-      {
-        methodName: "get_bounty",
-        args: { repo: repoFullName },
-      },
-    );
-    return result?.amount ?? "0";
+    const result = await agent.view<{ amount?: string }>({
+      methodName: "get_bounty",
+      args: { repo_id: repoFullName },
+    });
+    const yocto = result || "0";
+    return fromYocto(String(yocto));
   } catch (error) {
     console.error("Failed to fetch bounty amount:", error);
     return "0";
@@ -47,66 +52,19 @@ export async function releaseBounty(
 
   try {
     const agent = getAgent();
-    const networkId = (process.env.NETWORK_ID || "testnet") as
-      | "testnet"
-      | "mainnet";
-    const rpcUrl =
-      networkId === "mainnet"
-        ? "https://rpc.mainnet.near.org"
-        : "https://rpc.testnet.near.org";
-    const provider = new JsonRpcProvider({ url: rpcUrl });
+    const amountYocto = toYocto(amount);
 
-    const agentAccountId = agent.accountId();
-    const [privateKey] = agent.getPrivateKeys(true);
-    const keyPair = KeyPair.fromString(privateKey);
-    const publicKey = keyPair.getPublicKey();
-
-    const accessKey = await provider.viewAccessKey(
-      agentAccountId,
-      publicKey.toString(),
-    );
-
-    const block = await provider.block({ finality: "final" });
-    const blockHash = baseDecode(block.header.hash);
-
-    const yoctoAmount = parseNearAmount(amount) || "0";
-
-    const actions = [actionCreators.transfer(BigInt(yoctoAmount))];
-    const transaction = createTransaction(
-      agentAccountId,
-      publicKey,
-      contributorWallet,
-      accessKey.nonce + BigInt(1),
-      actions,
-      blockHash,
-    );
-
-    const encodedTx = transaction.encode();
-    const txHashBytes = crypto.createHash("sha256").update(encodedTx).digest();
-    const payloadHex = Buffer.from(txHashBytes).toString("hex");
-
-    const signatureHex = await requestSignature({
-      path: "bounty-payouts",
-      payload: payloadHex,
-      keyType: "Eddsa",
-      keyVersion: 0,
-    } as any);
-
-    const signatureBytes = Buffer.from(
-      String(signatureHex).replace(/^0x/, ""),
-      "hex",
-    );
-
-    const signedTx = new SignedTransaction({
-      transaction,
-      signature: new Signature({
-        keyType: KeyType.ED25519,
-        data: signatureBytes,
-      }),
+    const result: any = await agent.call({
+      methodName: "release_bounty",
+      args: {
+        repo_id: repoFullName,
+        recipient: contributorWallet,
+        amount: amountYocto,
+      },
+      gas: BigInt("100000000000000"),
     });
 
-    const outcome = await provider.sendTransaction(signedTx);
-    const txHash = outcome.transaction.hash;
+    const txHash = result?.transaction?.hash || "unknown";
 
     logPayout({
       repo: repoFullName,

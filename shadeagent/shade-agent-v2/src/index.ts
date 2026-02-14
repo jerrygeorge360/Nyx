@@ -55,7 +55,7 @@ async function start() {
     res.json({
       status: "ok",
       agent: "registered",
-      agentAccountId: agent.accountId(),
+      agentAccountId: getAgent().accountId(),
       payouts,
     });
   });

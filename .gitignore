@@ -41,6 +41,55 @@ frontend/.env.*
 frontend/.env.local
 frontend/.env.*.local
 
+### Shade Agent (Node/TypeScript)
+shadeagent/**/node_modules/
+shadeagent/**/dist/
+shadeagent/**/build/
+shadeagent/**/.cache/
+shadeagent/**/.turbo/
+shadeagent/**/.swc/
+shadeagent/**/.tsbuildinfo
+shadeagent/**/coverage/
+shadeagent/**/.nyc_output/
+shadeagent/**/logs/
+shadeagent/**/*.log
+shadeagent/**/.env
+shadeagent/**/.env.*
+shadeagent/**/.env.local
+shadeagent/**/.env.*.local
+shadeagent/**/out/
+shadeagent/**/.next/
+shadeagent/**/.vercel/
+shadeagent/**/tmp/
+shadeagent/**/.temp/
+
+### Shade Agent (duplicated from inner .gitignore)
+shadeagent/**/node_modules
+shadeagent/**/.pnp
+shadeagent/**/.pnp.*
+shadeagent/**/.yarn/*
+!shadeagent/**/.yarn/patches
+!shadeagent/**/.yarn/plugins
+!shadeagent/**/.yarn/releases
+!shadeagent/**/.yarn/versions
+shadeagent/**/coverage
+shadeagent/**/.next
+shadeagent/**/out
+shadeagent/**/build
+shadeagent/**/dist
+shadeagent/**/.DS_Store
+shadeagent/**/*.pem
+shadeagent/**/npm-debug.log*
+shadeagent/**/yarn-debug.log*
+shadeagent/**/yarn-error.log*
+shadeagent/**/.env
+shadeagent/**/.env*.local
+shadeagent/**/.vercel
+shadeagent/**/*.tsbuildinfo
+shadeagent/**/next-env.d.ts
+shadeagent/**/target
+shadeagent/**/new-release/
+
 ### OS/Editor
 .DS_Store
 Thumbs.db
